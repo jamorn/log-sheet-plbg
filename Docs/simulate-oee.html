@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OEE Calculator - From Categories JSON</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .compact-input {
+            width: 100px !important;
+            min-width: 90px;
+            padding: 8px 10px !important;
+            text-align: center;
+            font-size: 1.05rem;
+        }
+
+        .compact-label {
+            font-size: 1.1rem !important;
+            line-height: 1.4 !important;
+            min-width: 140px;
+            display: inline-block;
+        }
+
+        :root {
+            font-size: 16px;
+        }
+
+        body {
+            font-size: 1rem;
+        }
+
+        .text-xs {
+            font-size: 0.95rem !important;
+        }
+
+        .text-sm {
+            font-size: 1.05rem !important;
+        }
+
+        .text-base {
+            font-size: 1.15rem !important;
+        }
+
+        /* Category badge styles - softer UI */
+        .cat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-right: 10px;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid transparent;
+        }
+
+        /* Higher contrast defaults (works in light theme) */
+        .cat-planned {
+            background: rgba(59, 130, 246, 0.16);
+            color: #1e40af;
+            border-color: rgba(59, 130, 246, 0.22);
+        }
+
+        .cat-unplanned {
+            background: rgba(245, 158, 11, 0.16);
+            color: #92400e;
+            border-color: rgba(245, 158, 11, 0.20);
+        }
+
+        .cat-minor {
+            background: rgba(251, 146, 60, 0.14);
+            color: #7c2d12;
+            border-color: rgba(251, 146, 60, 0.16);
+        }
+
+        .cat-quality {
+            background: rgba(239, 68, 68, 0.16);
+            color: #991b1b;
+            border-color: rgba(239, 68, 68, 0.20);
+        }
+
+        /* Stronger visibility in dark mode */
+        @media (prefers-color-scheme: dark) {
+            .cat-badge {
+                box-shadow: 0 4px 10px rgba(2, 6, 23, 0.6);
+            }
+
+            .cat-planned {
+                background: rgba(59, 130, 246, 0.22);
+                color: #e6f2ff;
+                border-color: rgba(59, 130, 246, 0.32);
+            }
+
+            .cat-unplanned {
+                background: rgba(245, 158, 11, 0.22);
+                color: #fff7e6;
+                border-color: rgba(245, 158, 11, 0.28);
+            }
+
+            .cat-minor {
+                background: rgba(251, 146, 60, 0.20);
+                color: #fff4ea;
+                border-color: rgba(251, 146, 60, 0.26);
+            }
+
+            .cat-quality {
+                background: rgba(239, 68, 68, 0.22);
+                color: #ffecec;
+                border-color: rgba(239, 68, 68, 0.30);
+            }
+        }
+
+        /* Category heading (title) styling for better contrast and spacing */
+        .cat-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .cat-heading {
+                color: #e6eef8;
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .cat-heading {
+                color: #0f172a;
+            }
+        }
+
+        /* Ensure number input spin buttons don't show a white default background */
+        input[type="number"] {
+            background-color: transparent;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            background: transparent;
+            color: inherit;
+            height: 100%;
+            box-shadow: none;
+        }
+
+        /* subtle divider between value and spinner in dark mode */
+        @media (prefers-color-scheme: dark) {
+
+            input[type="number"]::-webkit-inner-spin-button,
+            input[type="number"]::-webkit-outer-spin-button {
+                background: rgba(255, 255, 255, 0.02);
+                border-left: 1px solid rgba(255, 255, 255, 0.03);
+            }
+        }
+
+        /* Firefox: keep native look but avoid bright backgrounds by using textfield appearance */
+        input[type="number"]::-moz-focus-inner {
+            border: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+            -webkit-appearance: textfield;
+            appearance: textfield;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div class="min-h-screen">
+        <div class="gradient-bg text-white py-6 px-4">
+            <div class="max-w-5xl mx-auto text-center">
+                <h1 class="text-2xl font-bold mb-2">OEE Calculator - Generated from Categories</h1>
+                <p class="text-sm opacity-90">แสดงฟอร์มโดยใช้ข้อมูล Category / LossTypes</p>
+            </div>
+        </div>
+
+        <div class="max-w-5xl mx-auto px-4 py-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6 shadow" style="display:none;">
+                <h2 class="text-lg font-bold mb-2">Categories JSON (for reference)</h2>
+                <textarea id="categoriesJson" rows="8"
+                    class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 font-mono text-xs"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" id="machineContainer"></div>
+
+            <div class="text-center mb-6">
+                <button onclick="calculateAllMachines()"
+                    class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-lg">🧮
+                    คำนวณ OEE ทั้งเครื่อง</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="summaryResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Provided categories JSON (updated)
+        const categories = [
+            {
+                "CategoryID": 10,
+                "CategoryNameTH": "เวลาหยุดเครื่อง Planned",
+                "CategoryLevel": 1,
+                "LossTypes": [
+                    { "ProblemTypeID": 101, "TypeNameTH": "ช่างทำการ PM", "IsActive": true, "DisplayOrder": 1 },
+                    { "ProblemTypeID": 102, "TypeNameTH": "ประชุม", "IsActive": true, "DisplayOrder": 2 },
+                    { "ProblemTypeID": 103, "TypeNameTH": "รอโปรแกรม", "IsActive": true, "DisplayOrder": 3 },
+                    { "ProblemTypeID": 104, "TypeNameTH": "ทำความสะอาด", "IsActive": true, "DisplayOrder": 4 },
+                    { "ProblemTypeID": 105, "TypeNameTH": "เปลี่ยน FILM", "IsActive": true, "DisplayOrder": 5 }
+                ]
+            },
+            {
+                "CategoryID": 20,
+                "CategoryNameTH": "เวลาหยุดเครื่อง Unplanned",
+                "CategoryLevel": 2,
+                "LossTypes": [
+                    { "ProblemTypeID": 201, "TypeNameTH": "เครื่องจักรเสีย", "IsActive": true, "DisplayOrder": 0 },
+                    { "ProblemTypeID": 202, "TypeNameTH": "ปรับ Teflon Top Seal", "IsActive": true, "DisplayOrder": 1 },
+                    { "ProblemTypeID": 203, "TypeNameTH": "ปรับ Teflon Bottom Seal", "IsActive": true, "DisplayOrder": 2 },
+                    { "ProblemTypeID": 204, "TypeNameTH": "ปรับ condition Bagging", "IsActive": true, "DisplayOrder": 3 },
+                    { "ProblemTypeID": 205, "TypeNameTH": "ล้าง ink jet และปรับแต่ง", "IsActive": true, "DisplayOrder": 4 },
+                    { "ProblemTypeID": 206, "TypeNameTH": "ปรับ condition Palletizer", "IsActive": true, "DisplayOrder": 5 },
+                    { "ProblemTypeID": 299, "TypeNameTH": "อื่นๆ (Time Loss)", "IsActive": true, "DisplayOrder": 99 }
+                ]
+            },
+            {
+                "CategoryID": 30,
+                "CategoryNameTH": "ของเสีย (ถุง)",
+                "CategoryLevel": 3,
+                "LossTypes": [
+                    { "ProblemTypeID": 301, "TypeNameTH": "จำนวน Film Test", "IsActive": true, "DisplayOrder": 1 },
+                    { "ProblemTypeID": 302, "TypeNameTH": "Bottom Seal ทำถุงเสีย", "IsActive": true, "DisplayOrder": 2 },
+                    { "ProblemTypeID": 303, "TypeNameTH": "Conner ทำถุงเสีย", "IsActive": true, "DisplayOrder": 3 },
+                    { "ProblemTypeID": 304, "TypeNameTH": "Bagging ปล่อยถุงเปล่า", "IsActive": true, "DisplayOrder": 4 },
+                    { "ProblemTypeID": 305, "TypeNameTH": "Clamp Jaw จับถุงหลุด", "IsActive": true, "DisplayOrder": 5 },
+                    { "ProblemTypeID": 306, "TypeNameTH": "Holding Tong เกี่ยวแตก", "IsActive": true, "DisplayOrder": 6 },
+                    { "ProblemTypeID": 307, "TypeNameTH": "Top Seal ทำถุงเสีย", "IsActive": true, "DisplayOrder": 7 },
+                    { "ProblemTypeID": 308, "TypeNameTH": "Reject จากน้ำหนัก", "IsActive": true, "DisplayOrder": 8 },
+                    { "ProblemTypeID": 309, "TypeNameTH": "Ink Jet ทำถุงเสีย", "IsActive": true, "DisplayOrder": 9 },
+                    { "ProblemTypeID": 310, "TypeNameTH": "palletizer ทำถุงเสีย", "IsActive": true, "DisplayOrder": 10 },
+                    { "ProblemTypeID": 399, "TypeNameTH": "อื่นๆ (bag)", "IsActive": true, "DisplayOrder": 99 }
+                ]
+            }
+        ];
+
+        // show JSON for editing if needed
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('categoriesJson').value = JSON.stringify(categories, null, 2);
+            renderMachineInputs();
+            enableNumericOnly();
+            calculateAllMachines();
+        });
+
+        // Ensure inputs accept/keep only digits — sanitize on input and paste
+        function enableNumericOnly() {
+            function sanitizeValue(el) {
+                if (!el) return;
+                const original = el.value;
+                // allow empty string, otherwise keep only digits
+                const cleaned = original === '' ? '' : original.replace(/[^0-9]/g, '');
+                if (cleaned !== original) el.value = cleaned;
+            }
+
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(inp => {
+                // sanitize on input
+                inp.addEventListener('input', (e) => sanitizeValue(e.target));
+                // sanitize on paste (clean pasted text)
+                inp.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+                    const cleaned = text.replace(/[^0-9]/g, '');
+                    const start = inp.selectionStart || 0;
+                    const end = inp.selectionEnd || 0;
+                    const newVal = inp.value.slice(0, start) + cleaned + inp.value.slice(end);
+                    inp.value = newVal.replace(/[^0-9]/g, '');
+                    // trigger input handlers
+                    inp.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+                // optional: prevent non-numeric key presses (allow navigation/backspace)
+                inp.addEventListener('keydown', (e) => {
+                    const allowed = ['Backspace','ArrowLeft','ArrowRight','Tab','Delete','Home','End'];
+                    if (allowed.includes(e.key)) return;
+                    // allow Ctrl/Cmd+A/C/V/X
+                    if (e.ctrlKey || e.metaKey) return;
+                    // allow digits
+                    if (/^[0-9]$/.test(e.key)) return;
+                    e.preventDefault();
+                });
+            });
+        }
+
+        // Minimal machine list (keeps name/rpm), default times/production come from defaultConfig below
+        const defaultMachines = [
+            { id: 1, name: 'PP3/A', rpm: 1200 },
+            { id: 2, name: 'PP12/A', rpm: 1800 }
+        ];
+
+        // Default config (copied from original oee.html) to preserve initial plan/downtime/waste values
+        const defaultConfig = {
+            machines: [
+                {
+                    id: 1,
+                    name: "PP3/A",
+                    rpm: 1200,
+                    totalTime: 480,
+                    production: 109000,
+                    plan: {
+                        "ช่างทำการ PM": 0,
+                        "ประชุม": 0,
+                        "รอโปรแกรม": 180,
+                        "ทำความสะอาด": 60,
+                        "เปลี่ยน FILM": 5
+                    },
+                    downtime: {
+                        "เครื่องจักรเสีย": 0,
+                        "ปรับ Teflon Top Seal": 0,
+                        "ปรับ Teflon Bottom Seal": 0,
+                        "ปรับ condition Bagging": 0,
+                        "ล้าง ink jet และปรับแต่ง": 0,
+                        "ปรับ condition Palletizer": 0,
+                        "อื่นๆ": 0
+                    },
+                    waste: {
+                        "จำนวน Film Test": 0,
+                        "Bottom Seal ทำถุงเสีย": 0,
+                        "Conner ทำถุงเสีย": 0,
+                        "Bagging ปล่อยถุงเปล่า": 0,
+                        "Clamp Jaw จับถุงหลุด": 0,
+                        "Holding Tong เกี่ยวแตก": 0,
+                        "Top Seal ทำถุงเสีย": 0,
+                        "Reject จากน้ำหนัก": 0,
+                        "Ink Jet ทำถุงเสีย": 0,
+                        "palletizer ทำถุงเสีย": 0,
+                        "อื่นๆ (bag)": 0
+                    }
+                },
+                {
+                    id: 2,
+                    name: "PP12/A",
+                    rpm: 1800,
+                    totalTime: 480,
+                    production: 5850,
+                    plan: {
+                        "ช่างทำการ PM": 0,
+                        "ประชุม": 0,
+                        "รอโปรแกรม": 471,
+                        "ทำความสะอาด": 0,
+                        "เปลี่ยน FILM": 0
+                    },
+                    downtime: {
+                        "เครื่องจักรเสีย": 0,
+                        "ปรับ Teflon Top Seal": 0,
+                        "ปรับ Teflon Bottom Seal": 0,
+                        "ปรับ condition Bagging": 0,
+                        "ล้าง ink jet และปรับแต่ง": 0,
+                        "ปรับ condition Palletizer": 0,
+                        "อื่นๆ": 0
+                    },
+                    waste: {
+                        "จำนวน Film Test": 0,
+                        "Bottom Seal ทำถุงเสีย": 0,
+                        "Conner ทำถุงเสีย": 0,
+                        "Bagging ปล่อยถุงเปล่า": 0,
+                        "Clamp Jaw จับถุงหลุด": 0,
+                        "Holding Tong เกี่ยวแตก": 0,
+                        "Top Seal ทำถุงเสีย": 0,
+                        "Reject จากน้ำหนัก": 0,
+                        "Ink Jet ทำถุงเสีย": 0,
+                        "palletizer ทำถุงเสีย": 0,
+                        "อื่นๆ (bag)": 0
+                    }
+                }
+            ]
+        };
+
+        class Machine {
+            constructor(config) {
+                this.id = config.id;
+                this.name = config.name;
+                this.rpm = config.rpm;
+                this.cycleTime = 60 / config.rpm;
+                this.config = config;
+            }
+
+            calculateOEE() {
+                const BAG_WEIGHT = 25;
+
+                try {
+                    const totalTime = this.config.totalTime || 480;
+                    const productionKg = this.config.production || 0;
+
+                    // Calculate total plan time
+                    const totalPlanTime = Object.values(this.config.plan).reduce((sum, time) => sum + (parseInt(time) || 0), 0);
+                    const loadingTime = Math.max(0, totalTime - totalPlanTime);
+
+                    if (loadingTime <= 0) {
+                        return this.createResult(0, 0, 0, 0, 0, 0, 'Loading Time น้อยกว่าหรือเท่ากับ 0');
+                    }
+
+                    // Calculate total downtime
+                    const totalDowntime = Object.values(this.config.downtime).reduce((sum, time) => sum + (parseInt(time) || 0), 0);
+                    const operationTime = Math.max(0, loadingTime - totalDowntime);
+
+                    // Availability
+                    const availability = operationTime > 0 ? (operationTime / loadingTime) * 100 : 0;
+
+                    // Performance
+                    const actualBags = productionKg / BAG_WEIGHT;
+                    let performance = 0;
+                    if (operationTime > 0 && productionKg > 0) {
+                        performance = ((this.cycleTime * productionKg / BAG_WEIGHT) / operationTime) * 100;
+                        performance = Math.min(performance, 200);
+                    }
+
+                    // Quality
+                    const totalWaste = Object.values(this.config.waste).reduce((sum, waste) => sum + (parseInt(waste) || 0), 0);
+                    const totalBags = productionKg / BAG_WEIGHT;
+                    let quality = 100;
+                    if (totalBags > 0) {
+                        const goodBags = Math.max(0, totalBags - totalWaste);
+                        quality = (goodBags / totalBags) * 100;
+                        quality = Math.min(quality, 100);
+                    }
+
+                    // OEE
+                    const oee = (availability * performance * quality) / 10000;
+
+                    return this.createResult(
+                        loadingTime, operationTime, availability, performance, quality, oee,
+                        actualBags, Math.max(0, actualBags - totalWaste)
+                    );
+
+                } catch (error) {
+                    console.error('Calculation error:', error);
+                    return this.createResult(0, 0, 0, 0, 0, 0, error.message);
+                }
+            }
+
+            createResult(loadingTime, operationTime, availability, performance, quality, oee, actualBags, goodBags, error = null) {
+                return {
+                    loadingTime: Math.round(loadingTime),
+                    operationTime: Math.round(operationTime),
+                    availability: Math.round(availability * 100) / 100,
+                    performance: Math.round(performance * 100) / 100,
+                    quality: Math.round(quality * 100) / 100,
+                    oee: Math.round(oee * 100) / 100,
+                    actualBags: Math.round(actualBags),
+                    goodBags: Math.round(goodBags),
+                    error: error
+                };
+            }
+        }
+
+        function renderMachineInputs() {
+            const container = document.getElementById('machineContainer');
+            container.innerHTML = defaultMachines.map(m => renderMachineCard(m)).join('');
+        }
+
+        function renderMachineCard(machine) {
+            return `
+                <div id="card_${machine.id}" class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 id="card_title_${machine.id}" class="text-lg font-bold flex items-center gap-2"><span class="p-1 bg-blue-500 rounded text-white text-sm">🏭</span>${machine.name} (${machine.rpm} RPM)</h2>
+                        <div class="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">RPM: ${machine.rpm}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">เวลาทำงานทั้งหมด</label>
+                            <input type="number" inputmode="numeric" pattern="\d*" id="total_time_${machine.id}" value="${(defaultConfig.machines.find(x => x.id === machine.id) || {}).totalTime || 480}" class="w-full border border-gray-300 dark:border-gray-600 rounded bg-transparent dark:bg-gray-700 compact-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">การผลิตทั้งหมด (kg)</label>
+                            <input type="number" inputmode="numeric" pattern="\d*" id="production_${machine.id}" value="${(defaultConfig.machines.find(x => x.id === machine.id) || {}).production || 0}" class="w-full border border-gray-300 dark:border-gray-600 rounded bg-transparent dark:bg-gray-700 compact-input">
+                        </div>
+                    </div>
+                    ${categories.map(cat => renderCategoryForMachine(cat, machine.id)).join('')}
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 mt-3">
+                        <h3 class="font-semibold mb-2 text-gray-700 dark:text-gray-300 text-sm">📊 ผลลัพธ์</h3>
+                        <div class="space-y-1 text-xs" id="results_${machine.id}"><div class="text-center text-gray-500 text-xs">กดคำนวณเพื่อดูผลลัพธ์</div></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getDefaultValueFor(machineId, categoryLevel, typeName) {
+            try {
+                const m = defaultConfig.machines.find(x => x.id === machineId);
+                if (!m) return 0;
+                if (categoryLevel === 1) return m.plan[typeName] || 0;
+                if (categoryLevel === 3) return m.waste[typeName] || 0;
+                return m.downtime[typeName] || 0;
+            } catch (e) { return 0; }
+        }
+
+        function renderCategoryForMachine(cat, machineId) {
+            const level = cat.CategoryLevel;
+            let badgeClass = 'cat-planned';
+            let badgeText = 'Plan Time';
+            let icon = '📅';
+            if (level === 2) { badgeClass = 'cat-unplanned'; badgeText = 'Downtime'; icon = '⚠️'; }
+            else if (level === 3) { badgeClass = 'cat-quality'; badgeText = 'Waste'; icon = '🗑️'; }
+
+            return `
+                <div class="mb-3">
+                    <h3 class="cat-heading font-semibold mb-2 text-base">
+                        <span class="cat-badge ${badgeClass}">${icon} ${badgeText}: ${cat.CategoryNameTH}</span>
+                    </h3>
+                    <div class="space-y-1">
+                        ${cat.LossTypes.map(loss => {
+                const def = getDefaultValueFor(machineId, cat.CategoryLevel, loss.TypeNameTH);
+                return `
+                                <div class="flex justify-between items-center">
+                                    <span class="compact-label">${loss.TypeNameTH}</span>
+                                    <input type="number" inputmode="numeric" pattern="\d*" id="c${cat.CategoryID}_p${loss.ProblemTypeID}_m${machineId}" value="${def}" ${loss.ProblemTypeID === 105 ? 'step="5" min="5"' : ''} class="compact-input border border-gray-300 dark:border-gray-600 rounded bg-transparent dark:bg-gray-700 text-right">
+                                </div>
+                            `;
+            }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateAllMachines() {
+            const results = [];
+            defaultMachines.forEach(m => {
+                const cfg = { ...m };
+                cfg.totalTime = parseInt(document.getElementById(`total_time_${m.id}`).value) || m.totalTime;
+                cfg.production = parseInt(document.getElementById(`production_${m.id}`).value) || m.production;
+
+                // build plan/downtime/waste objects
+                const plan = {}; const downtime = {}; const waste = {};
+                categories.forEach(cat => {
+                    cat.LossTypes.forEach(loss => {
+                        const id = `c${cat.CategoryID}_p${loss.ProblemTypeID}_m${m.id}`;
+                        const val = parseInt(document.getElementById(id).value) || 0;
+                        if (cat.CategoryLevel === 1) plan[loss.TypeNameTH] = val;
+                        else if (cat.CategoryLevel === 3) waste[loss.TypeNameTH] = val;
+                        else downtime[loss.TypeNameTH] = val;
+                    });
+                });
+
+                // attach plan/downtime/waste to cfg so Machine.calculateOEE() uses same logic as original
+                cfg.plan = plan;
+                cfg.downtime = downtime;
+                cfg.waste = waste;
+                const machine = new Machine(cfg);
+                const res = machine.calculateOEE();
+                updateMachineResults(m.id, res);
+                results.push({ cfg, res });
+            });
+            updateSummary(results);
+        }
+
+        function updateMachineResults(id, r) {
+            const c = document.getElementById(`results_${id}`);
+            c.innerHTML = `
+                <div class="space-y-1">
+                    <div class="flex justify-between"><span class="text-xs">Loading Time:</span><span class="text-xs">${r.loadingTime} น.</span></div>
+                    <div class="flex justify-between"><span class="text-xs">Operation Time:</span><span class="text-xs">${r.operationTime} น.</span></div>
+                    <div class="flex justify-between"><span class="text-xs">Availability:</span><span class="text-xs">${r.availability}%</span></div>
+                    <div class="flex justify-between"><span class="text-xs">Performance:</span><span class="text-xs">${r.performance}%</span></div>
+                    <div class="flex justify-between"><span class="text-xs">Quality:</span><span class="text-xs">${r.quality}%</span></div>
+                    <div class="flex justify-between font-bold border-t pt-1 ${r.oee < 85 ? 'text-red-600' : 'text-green-600'}"><span class="text-xs">OEE:</span><span class="text-xs">${r.oee}%</span></div>
+                </div>
+            `;
+
+            // color the machine card title for quick visibility
+            const titleEl = document.getElementById(`card_title_${id}`);
+            if (titleEl) {
+                titleEl.classList.remove('text-red-600', 'text-green-600');
+                if (r.oee < 85) titleEl.classList.add('text-red-600');
+                else titleEl.classList.add('text-green-600');
+            }
+        }
+
+        function updateSummary(results) {
+            const container = document.getElementById('summaryResults');
+            container.innerHTML = results.map(({ cfg, res }) => `
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4">
+                    <h3 class="text-base font-bold mb-3 text-center ${res.oee < 85 ? 'text-red-600' : 'text-green-600'}">📈 ${cfg.name} (${cfg.rpm} RPM)</h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between"><span>Loading Time:</span><span>${res.loadingTime} นาที</span></div>
+                        <div class="flex justify-between"><span>Operation Time:</span><span>${res.operationTime} นาที</span></div>
+                        <div class="flex justify-between"><span>Actual Production:</span><span>${res.actualBags} ถุง</span></div>
+                        <div class="flex justify-between"><span>Good Production:</span><span>${res.goodBags} ถุง</span></div>
+                        <div class="flex justify-between font-bold ${res.oee < 85 ? 'text-red-600' : 'text-green-600'}"><span>OEE:</span><span>${res.oee}%</span></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OEE Calculator - Compact Design</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        
+        /* Compact input styling (updated for better readability) */
+        .compact-input {
+            width: 100px !important;
+            min-width: 90px;
+            padding: 8px 10px !important;
+            text-align: center;
+            font-size: 1.05rem;
+        }
+
+        /* Make the label easier to read */
+        .compact-label {
+            font-size: 1.1rem !important; /* slightly larger */
+            line-height: 1.4 !important;
+            min-width: 140px;
+            display: inline-block;
+        }
+
+        /* Increase global base font-size and override small Tailwind utilities */
+        :root { font-size: 16px; }
+        body { font-size: 1rem; }
+        .text-xs { font-size: 0.95rem !important; }
+        .text-sm { font-size: 1.05rem !important; }
+        .text-base { font-size: 1.15rem !important; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="gradient-bg text-white py-6 px-4">
+            <div class="max-w-7xl mx-auto text-center">
+                <h1 class="text-2xl font-bold mb-2">OEE Calculator - Compact Design</h1>
+                <p class="text-sm opacity-90">ระบบคำนวณประสิทธิผลเครื่องจักร</p>
+            </div>
+        </div>
+
+        <div class="max-w-5xl mx-auto px-4 py-6">
+            <!-- JSON Configuration -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6 shadow">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <span class="p-1 bg-blue-500 rounded text-white text-sm">⚙️</span>
+                        JSON Configuration
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="loadConfig()" class="bg-green-500 hover:bg-green-600 text-white text-sm py-1 px-3 rounded transition-colors">
+                            📥 โหลด
+                        </button>
+                        <button onclick="resetToDefault()" class="bg-gray-500 hover:bg-gray-600 text-white text-sm py-1 px-3 rounded transition-colors">
+                            🔄 เริ่มต้น
+                        </button>
+                    </div>
+                </div>
+                <textarea id="jsonConfig" rows="8" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 font-mono text-xs" placeholder="กรอก JSON Configuration ที่นี่"></textarea>
+            </div>
+
+            <!-- Dual Machine Input Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" id="machineContainer">
+                <!-- Machines will be rendered here -->
+            </div>
+
+            <!-- Calculate Button -->
+            <div class="text-center mb-6">
+                <button onclick="calculateAllMachines()" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow">
+                    🧮 คำนวณ OEE ทั้งสองเครื่อง
+                </button>
+            </div>
+
+            <!-- Summary Results -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="summaryResults">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default JSON Configuration
+        const defaultConfig = {
+            machines: [
+                {
+                    id: 1,
+                    name: "PP3/A",
+                    rpm: 1200,
+                    totalTime: 480,
+                    production: 109000,
+                    plan: {
+                        "ช่างทำการ PM": 0,
+                        "ประชุม": 0,
+                        "รอโปรแกรม": 180,
+                        "ทำความสะอาด": 60,
+                        "เปลี่ยน FILM": 5
+                    },
+                    downtime: {
+                        "เครื่องจักรเสีย": 0,
+                        "ปรับ Teflon Top Seal": 0,
+                        "ปรับ Teflon Bottom Seal": 0,
+                        "ปรับ condition Bagging": 0,
+                        "ล้าง ink jet และปรับแต่ง": 0,
+                        "ปรับ condition Palletizer": 0,
+                        "อื่นๆ": 0
+                    },
+                    waste: {
+                        "จำนวน Film Test": 0,
+                        "Bottom Seal ทำถุงเสีย": 0,
+                        "Conner ทำถุงเสีย": 0,
+                        "Bagging ปล่อยถุงเปล่า": 0,
+                        "Clamp Jaw จับถุงหลุด": 0,
+                        "Holding Tong เกี่ยวแตก": 0,
+                        "Top Seal ทำถุงเสีย": 0,
+                        "Reject จากน้ำหนัก": 0,
+                        "Ink Jet ทำถุงเสีย": 0,
+                        "palletizer ทำถุงเสีย": 0,
+                        "อื่นๆ (bag)": 0
+                    }
+                },
+                {
+                    id: 2,
+                    name: "PP12/A",
+                    rpm: 1800,
+                    totalTime: 480,
+                    production: 5850,
+                    plan: {
+                        "ช่างทำการ PM": 0,
+                        "ประชุม": 0,
+                        "รอโปรแกรม": 471,
+                        "ทำความสะอาด": 0,
+                        "เปลี่ยน FILM": 0
+                    },
+                    downtime: {
+                        "เครื่องจักรเสีย": 0,
+                        "ปรับ Teflon Top Seal": 0,
+                        "ปรับ Teflon Bottom Seal": 0,
+                        "ปรับ condition Bagging": 0,
+                        "ล้าง ink jet และปรับแต่ง": 0,
+                        "ปรับ condition Palletizer": 0,
+                        "อื่นๆ": 0
+                    },
+                    waste: {
+                        "จำนวน Film Test": 0,
+                        "Bottom Seal ทำถุงเสีย": 0,
+                        "Conner ทำถุงเสีย": 0,
+                        "Bagging ปล่อยถุงเปล่า": 0,
+                        "Clamp Jaw จับถุงหลุด": 0,
+                        "Holding Tong เกี่ยวแตก": 0,
+                        "Top Seal ทำถุงเสีย": 0,
+                        "Reject จากน้ำหนัก": 0,
+                        "Ink Jet ทำถุงเสีย": 0,
+                        "palletizer ทำถุงเสีย": 0,
+                        "อื่นๆ (bag)": 0
+                    }
+                }
+            ]
+        };
+
+        // Initialize JSON editor
+        document.getElementById('jsonConfig').value = JSON.stringify(defaultConfig, null, 2);
+
+        // OOP Classes
+        class Machine {
+            constructor(config) {
+                this.id = config.id;
+                this.name = config.name;
+                this.rpm = config.rpm;
+                this.cycleTime = 60 / config.rpm;
+                this.config = config;
+            }
+
+            calculateOEE() {
+                const BAG_WEIGHT = 25;
+                
+                try {
+                    const totalTime = this.config.totalTime || 480;
+                    const productionKg = this.config.production || 0;
+                    
+                    // Calculate total plan time
+                    const totalPlanTime = Object.values(this.config.plan).reduce((sum, time) => sum + (parseInt(time) || 0), 0);
+                    const loadingTime = Math.max(0, totalTime - totalPlanTime);
+                    
+                    if (loadingTime <= 0) {
+                        return this.createResult(0, 0, 0, 0, 0, 0, 'Loading Time น้อยกว่าหรือเท่ากับ 0');
+                    }
+                    
+                    // Calculate total downtime
+                    const totalDowntime = Object.values(this.config.downtime).reduce((sum, time) => sum + (parseInt(time) || 0), 0);
+                    const operationTime = Math.max(0, loadingTime - totalDowntime);
+                    
+                    // Availability
+                    const availability = operationTime > 0 ? (operationTime / loadingTime) * 100 : 0;
+                    
+                    // Performance
+                    const actualBags = productionKg / BAG_WEIGHT;
+                    let performance = 0;
+                    if (operationTime > 0 && productionKg > 0) {
+                        performance = ((this.cycleTime * productionKg / BAG_WEIGHT) / operationTime) * 100;
+                        performance = Math.min(performance, 200);
+                    }
+                    
+                    // Quality
+                    const totalWaste = Object.values(this.config.waste).reduce((sum, waste) => sum + (parseInt(waste) || 0), 0);
+                    const totalBags = productionKg / BAG_WEIGHT;
+                    let quality = 100;
+                    if (totalBags > 0) {
+                        const goodBags = Math.max(0, totalBags - totalWaste);
+                        quality = (goodBags / totalBags) * 100;
+                        quality = Math.min(quality, 100);
+                    }
+                    
+                    // OEE
+                    const oee = (availability * performance * quality) / 10000;
+                    
+                    return this.createResult(
+                        loadingTime, operationTime, availability, performance, quality, oee,
+                        actualBags, Math.max(0, actualBags - totalWaste)
+                    );
+                    
+                } catch (error) {
+                    console.error('Calculation error:', error);
+                    return this.createResult(0, 0, 0, 0, 0, 0, error.message);
+                }
+            }
+
+            createResult(loadingTime, operationTime, availability, performance, quality, oee, actualBags, goodBags, error = null) {
+                return {
+                    loadingTime: Math.round(loadingTime),
+                    operationTime: Math.round(operationTime),
+                    availability: Math.round(availability * 100) / 100,
+                    performance: Math.round(performance * 100) / 100,
+                    quality: Math.round(quality * 100) / 100,
+                    oee: Math.round(oee * 100) / 100,
+                    actualBags: Math.round(actualBags),
+                    goodBags: Math.round(goodBags),
+                    error: error
+                };
+            }
+        }
+
+        // Render functions
+        function renderMachineInputs() {
+            const container = document.getElementById('machineContainer');
+            const config = JSON.parse(document.getElementById('jsonConfig').value);
+            
+            container.innerHTML = config.machines.map(machine => `
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold flex items-center gap-2">
+                            <span class="p-1 bg-blue-500 rounded text-white text-sm">🏭</span>
+                            ${machine.name} (${machine.rpm} RPM)
+                        </h2>
+                        <div class="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                            RPM: ${machine.rpm}
+                        </div>
+                    </div>
+                    
+                    <!-- Basic Info -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">เวลาทำงานทั้งหมด</label>
+                            <input type="number" id="total_time_${machine.id}" value="${machine.totalTime}" 
+                                   class="w-full border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 compact-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">การผลิตทั้งหมด (kg)</label>
+                            <input type="number" id="production_${machine.id}" value="${machine.production}" 
+                                   class="w-full border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 compact-input">
+                        </div>
+                    </div>
+
+                    <!-- Plan Time -->
+                    ${renderCategory('plan', '📅 Plan Time', machine.plan, machine.id)}
+                    
+                    <!-- Downtime -->
+                    ${renderCategory('downtime', '⚠️ Downtime', machine.downtime, machine.id)}
+                    
+                    <!-- Waste -->
+                    ${renderCategory('waste', '🗑️ Waste', machine.waste, machine.id)}
+                    
+                    <!-- Results -->
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded p-3 mt-3">
+                        <h3 class="font-semibold mb-2 text-gray-700 dark:text-gray-300 text-sm">📊 ผลลัพธ์</h3>
+                        <div class="space-y-1 text-xs" id="results_${machine.id}">
+                            <div class="text-center text-gray-500 text-xs">กดคำนวณเพื่อดูผลลัพธ์</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCategory(type, title, items, machineId) {
+            return `
+                        <div class="mb-3">
+                            <h3 class="font-semibold mb-2 text-gray-700 dark:text-gray-300 text-base">${title}</h3>
+                            <div class="space-y-1">
+                                ${Object.entries(items).map(([key, value]) => `
+                                    <div class="flex justify-between items-center">
+                                        <span class="compact-label">${key}</span>
+                                        <input type="number" id="${type}_${key.replace(/\s+/g, '_')}_${machineId}" 
+                                               value="${value}" class="compact-input border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-right">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+        }
+
+        // Configuration Management
+        function loadConfig() {
+            try {
+                const config = JSON.parse(document.getElementById('jsonConfig').value);
+                renderMachineInputs();
+                calculateAllMachines();
+            } catch (error) {
+                alert('❌ JSON Configuration ไม่ถูกต้อง: ' + error.message);
+            }
+        }
+
+        function resetToDefault() {
+            document.getElementById('jsonConfig').value = JSON.stringify(defaultConfig, null, 2);
+            loadConfig();
+        }
+
+        // Calculation
+        function calculateAllMachines() {
+            const config = JSON.parse(document.getElementById('jsonConfig').value);
+            const results = [];
+            
+            config.machines.forEach(machineConfig => {
+                // Update config from inputs
+                machineConfig.totalTime = parseInt(document.getElementById(`total_time_${machineConfig.id}`).value) || 480;
+                machineConfig.production = parseInt(document.getElementById(`production_${machineConfig.id}`).value) || 0;
+                
+                // Update plan times
+                Object.keys(machineConfig.plan).forEach(key => {
+                    const inputId = `plan_${key.replace(/\s+/g, '_')}_${machineConfig.id}`;
+                    machineConfig.plan[key] = parseInt(document.getElementById(inputId).value) || 0;
+                });
+                
+                // Update downtime
+                Object.keys(machineConfig.downtime).forEach(key => {
+                    const inputId = `downtime_${key.replace(/\s+/g, '_')}_${machineConfig.id}`;
+                    machineConfig.downtime[key] = parseInt(document.getElementById(inputId).value) || 0;
+                });
+                
+                // Update waste
+                Object.keys(machineConfig.waste).forEach(key => {
+                    const inputId = `waste_${key.replace(/\s+/g, '_')}_${machineConfig.id}`;
+                    machineConfig.waste[key] = parseInt(document.getElementById(inputId).value) || 0;
+                });
+                
+                const machine = new Machine(machineConfig);
+                const result = machine.calculateOEE();
+                results.push({ config: machineConfig, result });
+                
+                // Update individual machine results
+                updateMachineResults(machineConfig.id, result);
+            });
+            
+            updateSummary(results);
+        }
+
+        function updateMachineResults(machineId, result) {
+            const container = document.getElementById(`results_${machineId}`);
+            container.innerHTML = `
+                <div class="space-y-1">
+                    <div class="flex justify-between">
+                        <span class="text-xs">Loading Time:</span>
+                        <span class="text-xs">${result.loadingTime} น.</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-xs">Operation Time:</span>
+                        <span class="text-xs">${result.operationTime} น.</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-xs">Availability:</span>
+                        <span class="text-xs">${result.availability}%</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-xs">Performance:</span>
+                        <span class="text-xs">${result.performance}%</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-xs">Quality:</span>
+                        <span class="text-xs">${result.quality}%</span>
+                    </div>
+                    <div class="flex justify-between font-bold border-t pt-1 ${result.oee < 85 ? 'text-red-600' : 'text-green-600'}">
+                        <span class="text-xs">OEE:</span>
+                        <span class="text-xs">${result.oee}%</span>
+                    </div>
+                    ${result.error ? `<div class="text-red-600 text-xs">⚠️ ${result.error}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function updateSummary(results) {
+            const container = document.getElementById('summaryResults');
+            container.innerHTML = results.map(({ config, result }) => `
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4">
+                    <h3 class="text-base font-bold mb-3 text-center ${result.oee < 85 ? 'text-red-600' : 'text-green-600'}">
+                        📈 ${config.name} (${config.rpm} RPM)
+                    </h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span>Loading Time:</span>
+                            <span>${result.loadingTime} นาที</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Operation Time:</span>
+                            <span>${result.operationTime} นาที</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Actual Production:</span>
+                            <span>${result.actualBags} ถุง</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Good Production:</span>
+                            <span>${result.goodBags} ถุง</span>
+                        </div>
+                        <div class="flex justify-between font-bold ${result.oee < 85 ? 'text-red-600' : 'text-green-600'}">
+                            <span>OEE:</span>
+                            <span>${result.oee}%</span>
+                        </div>
+                        ${result.oee < 85 ? 
+                            '<div class="text-red-600 text-center font-bold mt-2 text-xs">⚠️ OEE ต่ำกว่า 85% ต้องการปรับปรุง</div>' : 
+                            '<div class="text-green-600 text-center font-bold mt-2 text-xs">✅ OEE ผ่านเกณฑ์</div>'
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Input validation
+        document.addEventListener('input', function(event) {
+            if (event.target.type === 'number' && event.target.value < 0) {
+                event.target.value = 0;
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            renderMachineInputs();
+            calculateAllMachines();
+        });
+    </script>
+</body>
+</html>

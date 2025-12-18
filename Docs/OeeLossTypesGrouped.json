@@ -1,0 +1,46 @@
+[
+  {
+    "CategoryID": 10,
+    "CategoryNameTH": "Planned Loss (A - Schedule)",
+    "CategoryLevel": 1,
+    "LossTypes": [
+      {"ProblemTypeID": 101, "TypeNameTH": "ช่างทำการ PM", "IsActive": true, "DisplayOrder": 1},
+      {"ProblemTypeID": 102, "TypeNameTH": "ประชุม", "IsActive": true, "DisplayOrder": 2},
+      {"ProblemTypeID": 103, "TypeNameTH": "รอโปรแกรม", "IsActive": true, "DisplayOrder": 3},
+      {"ProblemTypeID": 104, "TypeNameTH": "ทำความสะอาด", "IsActive": true, "DisplayOrder": 4},
+      {"ProblemTypeID": 105, "TypeNameTH": "เปลี่ยน FILM", "IsActive": true, "DisplayOrder": 5}
+    ]
+  },
+  {
+    "CategoryID": 20,
+    "CategoryNameTH": "Minor Stop/Speed Loss (P, A - Downtime)",
+    "CategoryLevel": 2,
+    "LossTypes": [
+      {"ProblemTypeID": 201, "TypeNameTH": "เครื่องจักรเสีย", "IsActive": true, "DisplayOrder": 0},
+      {"ProblemTypeID": 202, "TypeNameTH": "ปรับ Teflon Top Seal", "IsActive": true, "DisplayOrder": 1},
+      {"ProblemTypeID": 203, "TypeNameTH": "ปรับ Teflon Bottom Seal", "IsActive": true, "DisplayOrder": 2},
+      {"ProblemTypeID": 204, "TypeNameTH": "ปรับ condition Bagging", "IsActive": true, "DisplayOrder": 3},
+      {"ProblemTypeID": 205, "TypeNameTH": "ล้าง ink jet และปรับแต่ง", "IsActive": true, "DisplayOrder": 4},
+      {"ProblemTypeID": 206, "TypeNameTH": "ปรับ condition Palletizer", "IsActive": true, "DisplayOrder": 5},
+      {"ProblemTypeID": 299, "TypeNameTH": "อื่นๆ (Time Loss)", "IsActive": true, "DisplayOrder": 99}
+    ]
+  },
+  {
+    "CategoryID": 30,
+    "CategoryNameTH": "Quality Loss (Q - Rejects)",
+    "CategoryLevel": 3,
+    "LossTypes": [
+      {"ProblemTypeID": 301, "TypeNameTH": "จำนวน Film Test", "IsActive": true, "DisplayOrder": 1}, 
+      {"ProblemTypeID": 302, "TypeNameTH": "Bottom Seal ทำถุงเสีย", "IsActive": true, "DisplayOrder": 2}, 
+      {"ProblemTypeID": 303, "TypeNameTH": "Conner ทำถุงเสีย", "IsActive": true, "DisplayOrder": 3}, 
+      {"ProblemTypeID": 304, "TypeNameTH": "Bagging ปล่อยถุงเปล่า", "IsActive": true, "DisplayOrder": 4}, 
+      {"ProblemTypeID": 305, "TypeNameTH": "Clamp Jaw จับถุงหลุด", "IsActive": true, "DisplayOrder": 5}, 
+      {"ProblemTypeID": 306, "TypeNameTH": "Holding Tong เกี่ยวแตก", "IsActive": true, "DisplayOrder": 6}, 
+      {"ProblemTypeID": 307, "TypeNameTH": "Top Seal ทำถุงเสีย", "IsActive": true, "DisplayOrder": 7}, 
+      {"ProblemTypeID": 308, "TypeNameTH": "Reject จากน้ำหนัก", "IsActive": true, "DisplayOrder": 8},
+      {"ProblemTypeID": 309, "TypeNameTH": "Ink Jet ทำถุงเสีย", "IsActive": true, "DisplayOrder": 9}, 
+      {"ProblemTypeID": 310, "TypeNameTH": "palletizer ทำถุงเสีย", "IsActive": true, "DisplayOrder": 10}, 
+      {"ProblemTypeID": 399, "TypeNameTH": "อื่นๆ (bag)", "IsActive": true, "DisplayOrder": 99}
+    ]
+  }
+]
