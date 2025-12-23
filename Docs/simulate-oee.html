@@ -176,6 +176,26 @@
             -webkit-appearance: textfield;
             appearance: textfield;
         }
+
+        /* Modal styles */
+        .modal-backdrop {
+            background: rgba(2,6,23,0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-panel {
+            transform: scale(.98);
+            opacity: 0;
+            transition: transform 220ms cubic-bezier(.2,.9,.2,1), opacity 220ms ease;
+        }
+
+        .modal.modal-open .modal-panel {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .modal-header { display:flex; align-items:center; gap:12px; }
+        .modal-icon { width:36px; height:36px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(90deg,#4f46e5,#7c3aed); color:white; font-weight:700 }
     </style>
 </head>
 
@@ -200,7 +220,7 @@
             <div class="text-center mb-6">
                 <button onclick="calculateAllMachines()"
                     class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-lg">🧮
-                    คำนวณ OEE ทั้งเครื่อง</button>
+                    คำนวณ OEE ทั้ง 2 เครื่องจักร</button>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="summaryResults"></div>
@@ -303,10 +323,48 @@
             });
         }
 
+        // Modal helper to inform user when OEE is capped (shows animated panel)
+        function escapeHtml(unsafe) {
+            return String(unsafe)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function showOeeModal(message) {
+            let modal = document.getElementById('oeeModal');
+            if (!modal) return;
+            const msgEl = modal.querySelector('#oeeModalMessage');
+            if (!msgEl) return;
+
+            // Accept either string or array of messages
+            if (Array.isArray(message)) {
+                // build an unordered list for readability
+                const items = message.map(m => `<li>${escapeHtml(m)}</li>`).join('');
+                msgEl.innerHTML = `<ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">${items}</ul>`;
+            } else {
+                msgEl.textContent = String(message);
+            }
+
+            // remove hidden, then trigger open class for animation
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => modal.classList.add('modal-open'));
+        }
+
+        function hideOeeModal() {
+            let modal = document.getElementById('oeeModal');
+            if (!modal) return;
+            modal.classList.remove('modal-open');
+            // wait for transition to finish then hide
+            setTimeout(() => modal.classList.add('hidden'), 240);
+        }
+
         // Minimal machine list (keeps name/rpm), default times/production come from defaultConfig below
         const defaultMachines = [
-            { id: 1, name: 'PP3/A', rpm: 1200 },
-            { id: 2, name: 'PP12/A', rpm: 1800 }
+            { id: 1, name: 'PP3/A', rpm: 1200 },// 1 ชั่วโมง เครื่องจักรสามารถผลิตได้ 1200 ถุง
+            { id: 2, name: 'PP12/A', rpm: 1800 } // 1 ชั่วโมง เครื่องจักรสามารถผลิตได้ 1800 ถุง
         ];
 
         // Default config (copied from original oee.html) to preserve initial plan/downtime/waste values
@@ -315,7 +373,7 @@
                 {
                     id: 1,
                     name: "PP3/A",
-                    rpm: 1200,
+                    rpm: 1200,// 1 ชั่วโมง เครื่องจักรสามารถผลิตได้ 1200 ถุง
                     totalTime: 480,
                     production: 109000,
                     plan: {
@@ -351,7 +409,7 @@
                 {
                     id: 2,
                     name: "PP12/A",
-                    rpm: 1800,
+                    rpm: 1800, // 1 ชั่วโมง เครื่องจักรสามารถผลิตได้ 1800 ถุง
                     totalTime: 480,
                     production: 5850,
                     plan: {
@@ -416,32 +474,48 @@
                     const operationTime = Math.max(0, loadingTime - totalDowntime);
 
                     // Availability
-                    const availability = operationTime > 0 ? (operationTime / loadingTime) * 100 : 0;
+                    const availabilityRaw = operationTime > 0 ? (operationTime / loadingTime) * 100 : 0;
+                    let availability = availabilityRaw;
 
                     // Performance
                     const actualBags = productionKg / BAG_WEIGHT;
-                    let performance = 0;
+                    let performanceRaw = 0;
                     if (operationTime > 0 && productionKg > 0) {
-                        performance = ((this.cycleTime * productionKg / BAG_WEIGHT) / operationTime) * 100;
-                        performance = Math.min(performance, 200);
+                        performanceRaw = ((this.cycleTime * productionKg / BAG_WEIGHT) / operationTime) * 100;
+                        // keep raw value (may exceed 100)
                     }
+                    let performance = performanceRaw;
 
                     // Quality
                     const totalWaste = Object.values(this.config.waste).reduce((sum, waste) => sum + (parseInt(waste) || 0), 0);
                     const totalBags = productionKg / BAG_WEIGHT;
-                    let quality = 100;
+                    let qualityRaw = 100;
                     if (totalBags > 0) {
                         const goodBags = Math.max(0, totalBags - totalWaste);
-                        quality = (goodBags / totalBags) * 100;
-                        quality = Math.min(quality, 100);
+                        qualityRaw = (goodBags / totalBags) * 100;
                     }
+                    let quality = qualityRaw;
 
-                    // OEE
-                    const oee = (availability * performance * quality) / 10000;
+                    // Keep raw component values (may exceed 100) and collect informative warnings
+                    const warnings = [];
+                    if (availabilityRaw > 100) { warnings.push(`Availability เกิน 100% (raw: ${Math.round(availabilityRaw * 100) / 100}%)`); }
+                    if (performanceRaw > 100) { warnings.push(`Performance เกิน 100% (raw: ${Math.round(performanceRaw * 100) / 100}%)`); }
+                    if (qualityRaw > 100) { warnings.push(`Quality เกิน 100% (raw: ${Math.round(qualityRaw * 100) / 100}%)`); }
+
+                    // OEE (use raw component values to compute raw OEE)
+                    const oeeRaw = (availabilityRaw * performanceRaw * qualityRaw) / 10000;
+                    let oee = oeeRaw;
+                    if (oeeRaw > 100) {
+                        warnings.push(`มึงคิดดูให้ดีๆนะ OEE มันควรเกิน 100% ไหม (raw: ${Math.round(oeeRaw * 100) / 100}%)`);
+                    }
+                    if (warnings.length && typeof window.showOeeModal === 'function') {
+                        window.showOeeModal(warnings);
+                    }
 
                     return this.createResult(
                         loadingTime, operationTime, availability, performance, quality, oee,
-                        actualBags, Math.max(0, actualBags - totalWaste)
+                        actualBags, Math.max(0, actualBags - totalWaste),
+                        { availabilityRaw, performanceRaw, qualityRaw, oeeRaw }
                     );
 
                 } catch (error) {
@@ -450,7 +524,7 @@
                 }
             }
 
-            createResult(loadingTime, operationTime, availability, performance, quality, oee, actualBags, goodBags, error = null) {
+            createResult(loadingTime, operationTime, availability, performance, quality, oee, actualBags, goodBags, raw = {}, error = null) {
                 return {
                     loadingTime: Math.round(loadingTime),
                     operationTime: Math.round(operationTime),
@@ -460,6 +534,11 @@
                     oee: Math.round(oee * 100) / 100,
                     actualBags: Math.round(actualBags),
                     goodBags: Math.round(goodBags),
+                    // include raw (pre-capped) values for UI warnings
+                    availabilityRaw: raw.availabilityRaw !== undefined ? Math.round(raw.availabilityRaw * 100) / 100 : null,
+                    performanceRaw: raw.performanceRaw !== undefined ? Math.round(raw.performanceRaw * 100) / 100 : null,
+                    qualityRaw: raw.qualityRaw !== undefined ? Math.round(raw.qualityRaw * 100) / 100 : null,
+                    oeeRaw: raw.oeeRaw !== undefined ? Math.round(raw.oeeRaw * 100) / 100 : null,
                     error: error
                 };
             }
@@ -474,8 +553,8 @@
             return `
                 <div id="card_${machine.id}" class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 id="card_title_${machine.id}" class="text-lg font-bold flex items-center gap-2"><span class="p-1 bg-blue-500 rounded text-white text-sm">🏭</span>${machine.name} (${machine.rpm} RPM)</h2>
-                        <div class="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">RPM: ${machine.rpm}</div>
+                        <h2 id="card_title_${machine.id}" class="text-lg font-bold flex items-center gap-2"><span class="p-1 bg-blue-500 rounded text-white text-sm">🏭</span>${machine.name} </h2>
+                        <div class="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">bags/hr: ${machine.rpm}</div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div>
@@ -567,22 +646,31 @@
 
         function updateMachineResults(id, r) {
             const c = document.getElementById(`results_${id}`);
+            // determine warning state when any raw component or raw OEE exceeds 100
+            const hasWarning = (r.availabilityRaw > 100) || (r.performanceRaw > 100) || (r.qualityRaw > 100) || (r.oeeRaw > 100);
+            const oeeClass = hasWarning ? 'text-yellow-500' : (r.oee < 85 ? 'text-red-600' : 'text-green-600');
+            const availabilityClass = (r.availabilityRaw > 100) ? 'text-red-600 font-semibold' : '';
+            const performanceClass = (r.performanceRaw > 100) ? 'text-red-600 font-semibold' : '';
+            const qualityClass = (r.qualityRaw > 100) ? 'text-red-600 font-semibold' : '';
+            const oeeLabel = `${r.oee}%`;
+
             c.innerHTML = `
                 <div class="space-y-1">
                     <div class="flex justify-between"><span class="text-xs">Loading Time:</span><span class="text-xs">${r.loadingTime} น.</span></div>
                     <div class="flex justify-between"><span class="text-xs">Operation Time:</span><span class="text-xs">${r.operationTime} น.</span></div>
-                    <div class="flex justify-between"><span class="text-xs">Availability:</span><span class="text-xs">${r.availability}%</span></div>
-                    <div class="flex justify-between"><span class="text-xs">Performance:</span><span class="text-xs">${r.performance}%</span></div>
-                    <div class="flex justify-between"><span class="text-xs">Quality:</span><span class="text-xs">${r.quality}%</span></div>
-                    <div class="flex justify-between font-bold border-t pt-1 ${r.oee < 85 ? 'text-red-600' : 'text-green-600'}"><span class="text-xs">OEE:</span><span class="text-xs">${r.oee}%</span></div>
+                    <div class="flex justify-between"><span class="text-xs">Availability:</span><span class="text-xs ${availabilityClass}">${r.availability}%</span></div>
+                    <div class="flex justify-between"><span class="text-xs">Performance:</span><span class="text-xs ${performanceClass}">${r.performance}%</span></div>
+                    <div class="flex justify-between"><span class="text-xs">Quality:</span><span class="text-xs ${qualityClass}">${r.quality}%</span></div>
+                    <div class="flex justify-between font-bold border-t pt-1 ${oeeClass}"><span class="text-xs">OEE:</span><span class="text-xs">${oeeLabel}</span></div>
                 </div>
             `;
 
             // color the machine card title for quick visibility
             const titleEl = document.getElementById(`card_title_${id}`);
             if (titleEl) {
-                titleEl.classList.remove('text-red-600', 'text-green-600');
-                if (r.oee < 85) titleEl.classList.add('text-red-600');
+                titleEl.classList.remove('text-red-600', 'text-green-600', 'text-yellow-500');
+                if (hasWarning) titleEl.classList.add('text-yellow-500');
+                else if (r.oee < 85) titleEl.classList.add('text-red-600');
                 else titleEl.classList.add('text-green-600');
             }
         }
@@ -591,18 +679,37 @@
             const container = document.getElementById('summaryResults');
             container.innerHTML = results.map(({ cfg, res }) => `
                 <div class="bg-white dark:bg-gray-800 rounded-xl p-4">
-                    <h3 class="text-base font-bold mb-3 text-center ${res.oee < 85 ? 'text-red-600' : 'text-green-600'}">📈 ${cfg.name} (${cfg.rpm} RPM)</h3>
+                    <h3 class="text-base font-bold mb-3 text-center ${(res.availabilityRaw>100||res.performanceRaw>100||res.qualityRaw>100||res.oeeRaw>100) ? 'text-yellow-500' : (res.oee < 85 ? 'text-red-600' : 'text-green-600')}">📈 ${cfg.name} (${cfg.rpm} RPM)</h3>
                     <div class="space-y-2 text-xs">
                         <div class="flex justify-between"><span>Loading Time:</span><span>${res.loadingTime} นาที</span></div>
                         <div class="flex justify-between"><span>Operation Time:</span><span>${res.operationTime} นาที</span></div>
                         <div class="flex justify-between"><span>Actual Production:</span><span>${res.actualBags} ถุง</span></div>
                         <div class="flex justify-between"><span>Good Production:</span><span>${res.goodBags} ถุง</span></div>
-                        <div class="flex justify-between font-bold ${res.oee < 85 ? 'text-red-600' : 'text-green-600'}"><span>OEE:</span><span>${res.oee}%</span></div>
+                        <div class="flex justify-between font-bold ${((res.availabilityRaw>100||res.performanceRaw>100||res.qualityRaw>100||res.oeeRaw>100) ? 'text-yellow-500' : (res.oee < 85 ? 'text-red-600' : 'text-green-600'))}"><span>OEE:</span><span>${res.oee}%</span></div>
                     </div>
                 </div>
             `).join('');
         }
     </script>
+    <!-- OEE info modal -->
+    <div id="oeeModal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="modal-panel bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 modal-header">
+                <div class="modal-icon">i</div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold">ข้อมูล OEE</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">การคำนวณบางกรณีอาจเกิน 100% ระบบจะจำกัดค่าให้</p>
+                </div>
+                <button onclick="hideOeeModal()" class="text-gray-400 hover:text-gray-600 ml-4">✕</button>
+            </div>
+            <div class="p-5 text-sm text-gray-700 dark:text-gray-200">
+                <p id="oeeModalMessage">หมายเหตุ: OEE ไม่สามารถเกิน 100%.</p>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 text-right">
+                <button onclick="hideOeeModal()" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-95 text-white px-4 py-2 rounded">ปิด</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

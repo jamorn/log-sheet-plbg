@@ -128,3 +128,34 @@ JSON สำหรับ Downtime/Loss Time (@ProblemRecordsJson)
     "OperatorEmpId": "12345"
   }
 ]
+
+T-SQL EXECUTE
+DECLARE @DowntimeJson NVARCHAR(MAX) = N'
+[
+  {
+    "ProblemTypeID": 101, 
+    "StopDateTime": "2025-12-16 06:00:00",
+    "StartDateTime": "2025-12-16 07:00:00",
+    "IsMachineDowntime": 0, 
+    "OperatorEmpId": "12345" 
+  },
+  {
+    "ProblemTypeID": 201, 
+    "StopDateTime": "2025-12-16 09:30:00",
+    "StartDateTime": "2025-12-16 09:45:00",
+    "IsMachineDowntime": 1, 
+    "OperatorEmpId": "12345"
+  }
+]';
+
+EXEC InsertShiftProductionRecord
+    @MachineId = 3,
+    @ShiftID = 1,
+    @ShiftDate = '2025-12-16',
+    @SegmentStartDateTime = '2025-12-16 06:00:00',
+    @SegmentEndDateTime = '2025-12-16 14:00:00',
+    @BagOutActualMT = 5.000, -- ผลิตได้ 5,000 KG (5 MT)
+    @ProblemRecordsJson = @DowntimeJson,
+    @PCCQCKG = 5.0, 
+    @WasteRejectBags = 20, 
+    @BaggingCode = 'PL';
