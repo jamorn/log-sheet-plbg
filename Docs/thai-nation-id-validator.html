@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตรวจสอบเลขบัตรประชาชนไทย 13 หลัก</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Kanit', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+        
+        .left-panel {
+            flex: 2;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .right-panel {
+            flex: 1;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            max-width: 400px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.2rem;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        
+        h1:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            border-radius: 2px;
+        }
+        
+        .description {
+            text-align: center;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+        
+        .input-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            align-items: flex-end;
+        }
+        
+        .input-group {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            outline: none;
+        }
+        
+        input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .valid-input {
+            border-color: #2ecc71;
+        }
+        
+        .invalid-input {
+            border-color: #e74c3c;
+        }
+        
+        button {
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        canvas {
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            background-color: white;
+            max-width: 100%;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            background-color: #f8f9fa;
+            display: none;
+        }
+        
+        .result-section.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .result-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-title .icon {
+            font-size: 2rem;
+        }
+        
+        .valid {
+            color: #27ae60;
+        }
+        
+        .invalid {
+            color: #e74c3c;
+        }
+        
+        .result-details {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 10px;
+            line-height: 1.6;
+        }
+        
+        .digit-breakdown {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .digit {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: relative;
+        }
+        
+        .digit-normal {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .digit-check {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .digit-calculated {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f8ff;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        
+        /* Right Panel Styles */
+        .panel-title {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+            text-align: center;
+        }
+        
+        .algorithm-section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title i {
+            color: #3498db;
+            font-size: 1.5rem;
+        }
+        
+        .algorithm-step {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2ecc71;
+        }
+        
+        .algorithm-step h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .algorithm-step p {
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .formula-box {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        
+        .example-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        }
+        
+        .example-table th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .example-table td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .example-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .weight-badge {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin: 0 2px;
+        }
+        
+        .digit-badge {
+            display: inline-block;
+            background-color: #2ecc71;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin: 0 2px;
+        }
+        
+        .note-box {
+            background-color: #fff9e6;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .note-box h4 {
+            color: #d35400;
+            margin-bottom: 8px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: auto;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .right-panel {
+                max-width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .left-panel, .right-panel {
+                padding: 20px;
+            }
+            
+            .input-section {
+                flex-direction: column;
+            }
+            
+            .input-group {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            canvas {
+                max-width: 95%;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <!-- Left Panel: Main Application -->
+        <div class="left-panel">
+            <h1>ตรวจสอบเลขบัตรประชาชนไทย 13 หลัก</h1>
+            
+            <p class="description">
+                กรอกเลขบัตรประชาชน 13 หลักเพื่อตรวจสอบความถูกต้องตามมาตรฐานของไทย<br>
+                ระบบจะคำนวณและตรวจสอบตัวเลขหลักที่ 13 (Check Digit) ตามสูตรมาตรฐาน
+            </p>
+            
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="idInput">เลขบัตรประชาชน (13 หลัก)</label>
+                    <input type="text" id="idInput" maxlength="13" placeholder="กรอกเลขบัตรประชาชน 13 หลัก">
+                    <div id="inputError" style="color: #e74c3c; margin-top: 5px; display: none;">กรุณากรอกเฉพาะตัวเลข 13 หลัก</div>
+                </div>
+                
+                <button id="checkBtn">
+                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+                    ตรวจสอบเลขบัตร
+                </button>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="idCanvas" width="800" height="200"></canvas>
+            </div>
+            
+            <div id="resultSection" class="result-section">
+                <h2 class="result-title">
+                    <span class="icon" id="resultIcon">✓</span>
+                    <span id="resultText">ผลการตรวจสอบ</span>
+                </h2>
+                
+                <div class="result-details">
+                    <p id="resultDetail">ผลการตรวจสอบจะแสดงที่นี่</p>
+                    
+                    <div class="digit-breakdown" id="digitBreakdown"></div>
+                    
+                    <div class="explanation">
+                        <p><strong>วิธีการคำนวณ:</strong></p>
+                        <ol>
+                            <li>นำเลข 12 หลักแรกมาแต่ละหลักคูณกับค่าน้ำหนัก (13, 12, 11, ..., 2)</li>
+                            <li>นำผลคูณทั้ง 12 ตัวมาบวกกัน</li>
+                            <li>นำผลรวมที่ได้มาหารด้วย 11 แล้วหาเศษ</li>
+                            <li>นำ 11 ลบด้วยเศษที่ได้</li>
+                            <li>ถ้าผลลัพธ์ได้มากกว่า 9 ให้ใช้หลักหน่วยเป็น Check Digit</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                โปรแกรมตรวจสอบเลขบัตรประชาชนไทย | อ้างอิงตามมาตรฐานของราชกิจจานุเบกษา
+            </div>
+        </div>
+        
+        <!-- Right Panel: Algorithm Explanation -->
+        <div class="right-panel">
+            <h2 class="panel-title">
+                <i class="fas fa-calculator"></i>
+                อัลกอริทึม Modulus 11
+            </h2>
+            
+            <div class="algorithm-section">
+                <h3 class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    หลักการพื้นฐาน
+                </h3>
+                <p>อัลกอริทึม Modulus 11 ใช้ตรวจสอบความถูกต้องของเลขบัตรประชาชนไทย โดยหลักที่ 13 เป็นตัวเลขตรวจสอบ (Check Digit) ที่คำนวณจาก 12 หลักแรก</p>
+            </div>
+            
+            <div class="algorithm-section">
+                <h3 class="section-title">
+                    <i class="fas fa-list-ol"></i>
+                    ขั้นตอนการคำนวณ
+                </h3>
+                
+                <div class="algorithm-step">
+                    <h4>ขั้นตอนที่ 1: กำหนดน้ำหนัก</h4>
+                    <p>กำหนดน้ำหนักให้กับ 12 หลักแรก นับจากขวาไปซ้าย:</p>
+                    <div class="weight-example">
+                        <span class="weight-badge">13</span>
+                        <span class="weight-badge">12</span>
+                        <span class="weight-badge">11</span>
+                        <span class="weight-badge">10</span>
+                        <span class="weight-badge">9</span>
+                        <span class="weight-badge">8</span>
+                        <span class="weight-badge">7</span>
+                        <span class="weight-badge">6</span>
+                        <span class="weight-badge">5</span>
+                        <span class="weight-badge">4</span>
+                        <span class="weight-badge">3</span>
+                        <span class="weight-badge">2</span>
+                    </div>
+                </div>
+                
+                <div class="algorithm-step">
+                    <h4>ขั้นตอนที่ 2: คูณและรวมผล</h4>
+                    <p>แต่ละหลักคูณด้วยน้ำหนักของมัน แล้วนำผลคูณทั้งหมดมาบวกกัน</p>
+                    <div class="formula-box">
+                        SUM = (d₁×13) + (d₂×12) + ... + (d₁₂×2)
+                    </div>
+                </div>
+                
+                <div class="algorithm-step">
+                    <h4>ขั้นตอนที่ 3: หาเศษจาก Modulus 11</h4>
+                    <p>นำผลรวมที่ได้มาหารด้วย 11 และหาเศษ</p>
+                    <div class="formula-box">
+                        REMAINDER = SUM mod 11
+                    </div>
+                </div>
+                
+                <div class="algorithm-step">
+                    <h4>ขั้นตอนที่ 4: คำนวณ Check Digit</h4>
+                    <p>คำนวณตัวเลขตรวจสอบจากสูตร:</p>
+                    <div class="formula-box">
+                        CHECK DIGIT = (11 - REMAINDER) mod 10
+                    </div>
+                </div>
+            </div>
+            
+            <div class="algorithm-section">
+                <h3 class="section-title">
+                    <i class="fas fa-table"></i>
+                    ตัวอย่างการคำนวณ
+                </h3>
+                
+                <p>ตัวอย่างเลขบัตรประชาชน: <strong>1 2345 67890 12 1</strong></p>
+                
+                <table class="example-table">
+                    <thead>
+                        <tr>
+                            <th>หลัก</th>
+                            <th>ตัวเลข</th>
+                            <th>น้ำหนัก</th>
+                            <th>ผลคูณ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td><span class="digit-badge">1</span></td>
+                            <td><span class="weight-badge">13</span></td>
+                            <td>13</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><span class="digit-badge">2</span></td>
+                            <td><span class="weight-badge">12</span></td>
+                            <td>24</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><span class="digit-badge">3</span></td>
+                            <td><span class="weight-badge">11</span></td>
+                            <td>33</td>
+                        </tr>
+                        <tr>
+                            <td>...</td>
+                            <td>...</td>
+                            <td>...</td>
+                            <td>...</td>
+                        </tr>
+                        <tr style="background-color: #e8f4f8;">
+                            <td colspan="3"><strong>ผลรวม</strong></td>
+                            <td><strong>352</strong></td>
+                        </tr>
+                        <tr style="background-color: #e8f4f8;">
+                            <td colspan="3">352 mod 11</td>
+                            <td><strong>0</strong></td>
+                        </tr>
+                        <tr style="background-color: #e8f4f8;">
+                            <td colspan="3">(11 - 0) mod 10</td>
+                            <td><strong>1</strong> ✓</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="algorithm-section">
+                <h3 class="section-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    กรณีพิเศษ
+                </h3>
+                
+                <div class="note-box">
+                    <h4>กรณีที่เศษจากการหารเป็น 0</h4>
+                    <p>ถ้า SUM mod 11 = 0 แล้ว:</p>
+                    <p>Check Digit = (11 - 0) mod 10 = 11 mod 10 = <strong>1</strong></p>
+                </div>
+                
+                <div class="note-box">
+                    <h4>กรณีที่เศษจากการหารเป็น 1</h4>
+                    <p>ถ้า SUM mod 11 = 1 แล้ว:</p>
+                    <p>Check Digit = (11 - 1) mod 10 = 10 mod 10 = <strong>0</strong></p>
+                </div>
+            </div>
+            
+            <div class="algorithm-section">
+                <h3 class="section-title">
+                    <i class="fas fa-code"></i>
+                    โค้ดตัวอย่าง
+                </h3>
+                
+                <div style="background-color: #2c3e50; color: white; padding: 15px; border-radius: 10px; font-family: monospace; font-size: 0.9rem; overflow-x: auto;">
+                    <span style="color: #3498db;">function</span> <span style="color: #2ecc71;">validateThaiID</span>(id) {<br>
+                    &nbsp;&nbsp;<span style="color: #3498db;">if</span> (id.length !== 13) <span style="color: #e74c3c;">return false</span>;<br><br>
+                    &nbsp;&nbsp;<span style="color: #3498db;">let</span> sum = <span style="color: #f39c12;">0</span>;<br>
+                    &nbsp;&nbsp;<span style="color: #3498db;">for</span> (<span style="color: #3498db;">let</span> i = <span style="color: #f39c12;">0</span>; i &lt; <span style="color: #f39c12;">12</span>; i++) {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;sum += <span style="color: #2ecc71;">parseInt</span>(id[i]) * (<span style="color: #f39c12;">13</span> - i);<br>
+                    &nbsp;&nbsp;}<br><br>
+                    &nbsp;&nbsp;<span style="color: #3498db;">let</span> checkDigit = (<span style="color: #f39c12;">11</span> - (sum % <span style="color: #f39c12;">11</span>)) % <span style="color: #f39c12;">10</span>;<br>
+                    &nbsp;&nbsp;<span style="color: #3498db;">return</span> checkDigit === <span style="color: #2ecc71;">parseInt</span>(id[<span style="color: #f39c12;">12</span>]);<br>
+                    }
+                </div>
+            </div>
+            
+            <div class="footer">
+                <i class="fas fa-lightbulb" style="margin-right: 5px;"></i>
+                อัลกอริทึมนี้ใช้ตรวจสอบรูปแบบเลขบัตรประชาชนไทยเท่านั้น
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const idInput = document.getElementById('idInput');
+        const checkBtn = document.getElementById('checkBtn');
+        const canvas = document.getElementById('idCanvas');
+        const ctx = canvas.getContext('2d');
+        const resultSection = document.getElementById('resultSection');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultText = document.getElementById('resultText');
+        const resultDetail = document.getElementById('resultDetail');
+        const digitBreakdown = document.getElementById('digitBreakdown');
+        const inputError = document.getElementById('inputError');
+        
+        // Event Listeners
+        idInput.addEventListener('input', function() {
+            // Allow only numbers and limit to 13 digits
+            this.value = this.value.replace(/\D/g, '').slice(0, 13);
+            
+            // Hide error message when typing
+            inputError.style.display = 'none';
+            this.classList.remove('invalid-input');
+            
+            // If input is 13 digits, validate format
+            if (this.value.length === 13) {
+                const isValid = validateThaiID(this.value);
+                this.classList.toggle('valid-input', isValid);
+                this.classList.toggle('invalid-input', !isValid);
+            } else {
+                this.classList.remove('valid-input', 'invalid-input');
+            }
+            
+            // Draw current ID on canvas
+            drawIDCard(this.value);
+        });
+        
+        idInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkBtn.click();
+            }
+        });
+        
+        checkBtn.addEventListener('click', function() {
+            const id = idInput.value;
+            
+            // Validate input
+            if (id.length !== 13 || !/^\d+$/.test(id)) {
+                inputError.style.display = 'block';
+                idInput.classList.add('invalid-input');
+                idInput.focus();
+                return;
+            }
+            
+            // Validate ID
+            const isValid = validateThaiID(id);
+            
+            // Show result
+            showResult(id, isValid);
+            
+            // Draw final ID card
+            drawIDCard(id, true);
+            
+            // Highlight the algorithm section
+            highlightAlgorithmSteps(id);
+        });
+        
+        // Auto-focus on input
+        idInput.focus();
+        
+        // Initial draw on canvas
+        drawIDCard('');
+        
+        // Function to validate Thai ID
+        function validateThaiID(id) {
+            if (id.length !== 13 || !/^\d+$/.test(id)) {
+                return false;
+            }
+            
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                sum += parseInt(id.charAt(i)) * (13 - i);
+            }
+            
+            let checkDigit = (11 - (sum % 11)) % 10;
+            
+            return checkDigit === parseInt(id.charAt(12));
+        }
+        
+        // Function to draw ID card on canvas
+        function drawIDCard(id, showValidation = false) {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw card background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw card border
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+            
+            // Draw title
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 24px Kanit, sans-serif';
+            ctx.fillText('บัตรประจำตัวประชาชนไทย', 40, 50);
+            
+            // Draw ID label
+            ctx.font = '20px Kanit, sans-serif';
+            ctx.fillText('เลขประจำตัว:', 40, 100);
+            
+            // Draw ID number
+            ctx.font = 'bold 28px monospace';
+            
+            for (let i = 0; i < 13; i++) {
+                const x = 180 + (i * 40);
+                const y = 100;
+                
+                // Draw digit background
+                if (i < id.length) {
+                    // Check if we should highlight the check digit
+                    if (showValidation && i === 12) {
+                        const isValid = validateThaiID(id);
+                        ctx.fillStyle = isValid ? '#2ecc71' : '#e74c3c';
+                    } else {
+                        ctx.fillStyle = '#3498db';
+                    }
+                    
+                    ctx.fillRect(x - 15, y - 30, 30, 40);
+                    
+                    // Draw digit
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(id.charAt(i), x - 8, y);
+                } else {
+                    // Draw empty slot
+                    ctx.fillStyle = '#ecf0f1';
+                    ctx.fillRect(x - 15, y - 30, 30, 40);
+                    
+                    // Draw placeholder
+                    ctx.fillStyle = '#bdc3c7';
+                    ctx.fillText('_', x - 5, y);
+                }
+                
+                // Draw position number
+                ctx.fillStyle = '#7f8c8d';
+                ctx.font = '14px monospace';
+                ctx.fillText((i + 1).toString(), x - 5, y + 25);
+                ctx.font = 'bold 28px monospace';
+            }
+            
+            // Draw status if validating
+            if (showValidation && id.length === 13) {
+                const isValid = validateThaiID(id);
+                
+                ctx.font = 'bold 22px Kanit, sans-serif';
+                ctx.fillStyle = isValid ? '#27ae60' : '#e74c3c';
+                ctx.fillText(isValid ? '✓ หมายเลขถูกต้อง' : '✗ หมายเลขไม่ถูกต้อง', 40, 160);
+                
+                // Draw check digit explanation
+                ctx.font = '16px Kanit, sans-serif';
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillText(`หลักที่ 13 (Check Digit): ${id.charAt(12)}`, 40, 185);
+            }
+            
+            // Draw decorative elements
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 1;
+            
+            // Top decorative line
+            ctx.beginPath();
+            ctx.moveTo(40, 70);
+            ctx.lineTo(400, 70);
+            ctx.stroke();
+            
+            // Bottom decorative line
+            ctx.beginPath();
+            ctx.moveTo(40, 130);
+            ctx.lineTo(750, 130);
+            ctx.stroke();
+        }
+        
+        // Function to show validation result
+        function showResult(id, isValid) {
+            // Calculate check digit
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                sum += parseInt(id.charAt(i)) * (13 - i);
+            }
+            
+            let remainder = sum % 11;
+            let calculatedCheckDigit = (11 - remainder) % 10;
+            let actualCheckDigit = parseInt(id.charAt(12));
+            
+            // Update result display
+            if (isValid) {
+                resultIcon.textContent = '✓';
+                resultIcon.style.color = '#27ae60';
+                resultText.textContent = 'หมายเลขบัตรประชาชนถูกต้อง';
+                resultText.classList.add('valid');
+                resultText.classList.remove('invalid');
+                resultDetail.innerHTML = `เลขบัตรประชาชน <strong>${formatID(id)}</strong> ผ่านการตรวจสอบ<br>
+                    ตัวเลขหลักที่ 13 (Check Digit) ถูกต้อง`;
+            } else {
+                resultIcon.textContent = '✗';
+                resultIcon.style.color = '#e74c3c';
+                resultText.textContent = 'หมายเลขบัตรประชาชนไม่ถูกต้อง';
+                resultText.classList.add('invalid');
+                resultText.classList.remove('valid');
+                resultDetail.innerHTML = `เลขบัตรประชาชน <strong>${formatID(id)}</strong> ไม่ผ่านการตรวจสอบ<br>
+                    ตัวเลขหลักที่ 13 ควรเป็น <strong>${calculatedCheckDigit}</strong> แต่ปรากฏเป็น <strong>${actualCheckDigit}</strong>`;
+            }
+            
+            // Show digit breakdown
+            digitBreakdown.innerHTML = '';
+            for (let i = 0; i < 13; i++) {
+                const digitElement = document.createElement('div');
+                digitElement.className = 'digit';
+                
+                if (i < 12) {
+                    digitElement.classList.add('digit-normal');
+                    digitElement.textContent = id.charAt(i);
+                    digitElement.title = `หลักที่ ${i+1}: ${id.charAt(i)} × ${13-i} = ${parseInt(id.charAt(i)) * (13-i)}`;
+                } else {
+                    if (isValid) {
+                        digitElement.classList.add('digit-calculated');
+                    } else {
+                        digitElement.classList.add('digit-check');
+                    }
+                    digitElement.textContent = id.charAt(i);
+                    digitElement.title = `หลักที่ 13 (Check Digit): ค่าที่ควรเป็นคือ ${calculatedCheckDigit}`;
+                }
+                
+                digitBreakdown.appendChild(digitElement);
+            }
+            
+            // Show result section
+            resultSection.classList.add('show');
+            
+            // Scroll to result
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // Function to format ID with hyphens
+        function formatID(id) {
+            return id.replace(/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/, "$1-$2-$3-$4-$5");
+        }
+        
+        // Function to highlight algorithm steps based on input
+        function highlightAlgorithmSteps(id) {
+            // This function would highlight the relevant parts of the algorithm
+            // For now, we'll just log to console
+            console.log(`Calculating for ID: ${id}`);
+            
+            // You could add visual feedback to the algorithm steps here
+            // For example, highlight the weights and digits in the right panel
+        }
+        
+        // Example IDs for testing
+        function addExampleIDs() {
+            const exampleContainer = document.createElement('div');
+            exampleContainer.style.marginTop = '20px';
+            exampleContainer.innerHTML = `
+                <p style="margin-bottom: 10px; color: #7f8c8d;">ตัวอย่างเลขบัตรประชาชนสำหรับทดสอบ:</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button class="example-btn" data-id="1234567890121">
+                        <i class="fas fa-check-circle" style="margin-right: 5px;"></i>
+                        1234567890121 (ถูกต้อง)
+                    </button>
+                    <button class="example-btn" data-id="1111111111111">
+                        <i class="fas fa-times-circle" style="margin-right: 5px;"></i>
+                        1111111111111 (ไม่ถูกต้อง)
+                    </button>
+                </div>
+            `;
+            
+            document.querySelector('.input-section').appendChild(exampleContainer);
+            
+            // Add event listeners to example buttons
+            document.querySelectorAll('.example-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const exampleId = this.getAttribute('data-id');
+                    idInput.value = exampleId;
+                    
+                    // Trigger validation
+                    idInput.classList.remove('invalid-input', 'valid-input');
+                    inputError.style.display = 'none';
+                    
+                    // Check the ID
+                    const isValid = validateThaiID(exampleId);
+                    idInput.classList.toggle('valid-input', isValid);
+                    idInput.classList.toggle('invalid-input', !isValid);
+                    
+                    // Show result
+                    showResult(exampleId, isValid);
+                    
+                    // Draw ID card
+                    drawIDCard(exampleId, true);
+                });
+            });
+            
+            // Style example buttons
+            const style = document.createElement('style');
+            style.textContent = `
+                .example-btn {
+                    background: #f1f8ff;
+                    color: #3498db;
+                    border: 1px solid #3498db;
+                    padding: 10px 15px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                    transition: all 0.3s;
+                    display: flex;
+                    align-items: center;
+                }
+                .example-btn:hover {
+                    background: #3498db;
+                    color: white;
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 10px rgba(52, 152, 219, 0.2);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Add example IDs after page loads
+        window.addEventListener('load', addExampleIDs);
+    </script>
+</body>
+</html>

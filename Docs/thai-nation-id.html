@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตรวจสอบเลขบัตรประชาชนไทย 13 หลัก</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Kanit', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-top: 0;
+            font-size: 2.2rem;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        
+        h1:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            border-radius: 2px;
+        }
+        
+        .description {
+            text-align: center;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+        
+        .input-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        
+        .input-group {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            outline: none;
+        }
+        
+        input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .valid-input {
+            border-color: #2ecc71;
+        }
+        
+        .invalid-input {
+            border-color: #e74c3c;
+        }
+        
+        button {
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        canvas {
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            background-color: white;
+            max-width: 100%;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            background-color: #f8f9fa;
+            display: none;
+        }
+        
+        .result-section.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .result-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-title .icon {
+            font-size: 2rem;
+        }
+        
+        .valid {
+            color: #27ae60;
+        }
+        
+        .invalid {
+            color: #e74c3c;
+        }
+        
+        .result-details {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 10px;
+            line-height: 1.6;
+        }
+        
+        .digit-breakdown {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .digit {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .digit-normal {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .digit-check {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .digit-calculated {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f8ff;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .input-section {
+                flex-direction: column;
+            }
+            
+            .input-group {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            canvas {
+                max-width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ตรวจสอบเลขบัตรประชาชนไทย 13 หลัก</h1>
+        
+        <p class="description">
+            กรอกเลขบัตรประชาชน 13 หลักเพื่อตรวจสอบความถูกต้องตามมาตรฐานของไทย<br>
+            ระบบจะคำนวณและตรวจสอบตัวเลขหลักที่ 13 (Check Digit) ตามสูตรมาตรฐาน
+        </p>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label for="idInput">เลขบัตรประชาชน (13 หลัก)</label>
+                <input type="text" id="idInput" maxlength="13" placeholder="กรอกเลขบัตรประชาชน 13 หลัก">
+                <div id="inputError" style="color: #e74c3c; margin-top: 5px; display: none;">กรุณากรอกเฉพาะตัวเลข 13 หลัก</div>
+            </div>
+            
+            <button id="checkBtn">ตรวจสอบเลขบัตร</button>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="idCanvas" width="800" height="200"></canvas>
+        </div>
+        
+        <div id="resultSection" class="result-section">
+            <h2 class="result-title">
+                <span class="icon" id="resultIcon">✓</span>
+                <span id="resultText">ผลการตรวจสอบ</span>
+            </h2>
+            
+            <div class="result-details">
+                <p id="resultDetail">ผลการตรวจสอบจะแสดงที่นี่</p>
+                
+                <div class="digit-breakdown" id="digitBreakdown"></div>
+                
+                <div class="explanation">
+                    <p><strong>วิธีการคำนวณ:</strong></p>
+                    <ol>
+                        <li>นำเลข 12 หลักแรกมาแต่ละหลักคูณกับค่าน้ำหนัก (13, 12, 11, ..., 2)</li>
+                        <li>นำผลคูณทั้ง 12 ตัวมาบวกกัน</li>
+                        <li>นำผลรวมที่ได้มาหารด้วย 11 แล้วหาเศษ</li>
+                        <li>นำ 11 ลบด้วยเศษที่ได้</li>
+                        <li>ถ้าผลลัพธ์ได้มากกว่า 9 ให้ใช้หลักหน่วยเป็น Check Digit</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            โปรแกรมตรวจสอบเลขบัตรประชาชนไทย | อ้างอิงตามมาตรฐานของราชกิจจานุเบกษา
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const idInput = document.getElementById('idInput');
+        const checkBtn = document.getElementById('checkBtn');
+        const canvas = document.getElementById('idCanvas');
+        const ctx = canvas.getContext('2d');
+        const resultSection = document.getElementById('resultSection');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultText = document.getElementById('resultText');
+        const resultDetail = document.getElementById('resultDetail');
+        const digitBreakdown = document.getElementById('digitBreakdown');
+        const inputError = document.getElementById('inputError');
+        
+        // Event Listeners
+        idInput.addEventListener('input', function() {
+            // Allow only numbers and limit to 13 digits
+            this.value = this.value.replace(/\D/g, '').slice(0, 13);
+            
+            // Hide error message when typing
+            inputError.style.display = 'none';
+            this.classList.remove('invalid-input');
+            
+            // If input is 13 digits, validate format
+            if (this.value.length === 13) {
+                const isValid = validateThaiID(this.value);
+                this.classList.toggle('valid-input', isValid);
+                this.classList.toggle('invalid-input', !isValid);
+            } else {
+                this.classList.remove('valid-input', 'invalid-input');
+            }
+            
+            // Draw current ID on canvas
+            drawIDCard(this.value);
+        });
+        
+        checkBtn.addEventListener('click', function() {
+            const id = idInput.value;
+            
+            // Validate input
+            if (id.length !== 13 || !/^\d+$/.test(id)) {
+                inputError.style.display = 'block';
+                idInput.classList.add('invalid-input');
+                idInput.focus();
+                return;
+            }
+            
+            // Validate ID
+            const isValid = validateThaiID(id);
+            
+            // Show result
+            showResult(id, isValid);
+            
+            // Draw final ID card
+            drawIDCard(id, true);
+        });
+        
+        // Auto-focus on input
+        idInput.focus();
+        
+        // Initial draw on canvas
+        drawIDCard('');
+        
+        // Function to validate Thai ID
+        function validateThaiID(id) {
+            if (id.length !== 13 || !/^\d+$/.test(id)) {
+                return false;
+            }
+            
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                sum += parseInt(id.charAt(i)) * (13 - i);
+            }
+            
+            let checkDigit = (11 - (sum % 11)) % 10;
+            
+            return checkDigit === parseInt(id.charAt(12));
+        }
+        
+        // Function to draw ID card on canvas
+        function drawIDCard(id, showValidation = false) {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw card background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw card border
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+            
+            // Draw title
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 24px Kanit, sans-serif';
+            ctx.fillText('บัตรประจำตัวประชาชนไทย', 40, 50);
+            
+            // Draw ID label
+            ctx.font = '20px Kanit, sans-serif';
+            ctx.fillText('เลขประจำตัว:', 40, 100);
+            
+            // Draw ID number
+            ctx.font = 'bold 28px monospace';
+            
+            for (let i = 0; i < 13; i++) {
+                const x = 180 + (i * 40);
+                const y = 100;
+                
+                // Draw digit background
+                if (i < id.length) {
+                    // Check if we should highlight the check digit
+                    if (showValidation && i === 12) {
+                        const isValid = validateThaiID(id);
+                        ctx.fillStyle = isValid ? '#2ecc71' : '#e74c3c';
+                    } else {
+                        ctx.fillStyle = '#3498db';
+                    }
+                    
+                    ctx.fillRect(x - 15, y - 30, 30, 40);
+                    
+                    // Draw digit
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(id.charAt(i), x - 8, y);
+                } else {
+                    // Draw empty slot
+                    ctx.fillStyle = '#ecf0f1';
+                    ctx.fillRect(x - 15, y - 30, 30, 40);
+                    
+                    // Draw placeholder
+                    ctx.fillStyle = '#bdc3c7';
+                    ctx.fillText('_', x - 5, y);
+                }
+                
+                // Draw position number
+                ctx.fillStyle = '#7f8c8d';
+                ctx.font = '14px monospace';
+                ctx.fillText((i + 1).toString(), x - 5, y + 25);
+                ctx.font = 'bold 28px monospace';
+            }
+            
+            // Draw status if validating
+            if (showValidation && id.length === 13) {
+                const isValid = validateThaiID(id);
+                
+                ctx.font = 'bold 22px Kanit, sans-serif';
+                ctx.fillStyle = isValid ? '#27ae60' : '#e74c3c';
+                ctx.fillText(isValid ? '✓ หมายเลขถูกต้อง' : '✗ หมายเลขไม่ถูกต้อง', 40, 160);
+                
+                // Draw check digit explanation
+                ctx.font = '16px Kanit, sans-serif';
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillText(`หลักที่ 13 (Check Digit): ${id.charAt(12)}`, 40, 185);
+            }
+            
+            // Draw decorative elements
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 1;
+            
+            // Top decorative line
+            ctx.beginPath();
+            ctx.moveTo(40, 70);
+            ctx.lineTo(400, 70);
+            ctx.stroke();
+            
+            // Bottom decorative line
+            ctx.beginPath();
+            ctx.moveTo(40, 130);
+            ctx.lineTo(750, 130);
+            ctx.stroke();
+        }
+        
+        // Function to show validation result
+        function showResult(id, isValid) {
+            // Calculate check digit
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                sum += parseInt(id.charAt(i)) * (13 - i);
+            }
+            
+            let remainder = sum % 11;
+            let calculatedCheckDigit = (11 - remainder) % 10;
+            let actualCheckDigit = parseInt(id.charAt(12));
+            
+            // Update result display
+            if (isValid) {
+                resultIcon.textContent = '✓';
+                resultIcon.style.color = '#27ae60';
+                resultText.textContent = 'หมายเลขบัตรประชาชนถูกต้อง';
+                resultText.classList.add('valid');
+                resultText.classList.remove('invalid');
+                resultDetail.innerHTML = `เลขบัตรประชาชน <strong>${formatID(id)}</strong> ผ่านการตรวจสอบ<br>
+                    ตัวเลขหลักที่ 13 (Check Digit) ถูกต้อง`;
+            } else {
+                resultIcon.textContent = '✗';
+                resultIcon.style.color = '#e74c3c';
+                resultText.textContent = 'หมายเลขบัตรประชาชนไม่ถูกต้อง';
+                resultText.classList.add('invalid');
+                resultText.classList.remove('valid');
+                resultDetail.innerHTML = `เลขบัตรประชาชน <strong>${formatID(id)}</strong> ไม่ผ่านการตรวจสอบ<br>
+                    ตัวเลขหลักที่ 13 ควรเป็น <strong>${calculatedCheckDigit}</strong> แต่ปรากฏเป็น <strong>${actualCheckDigit}</strong>`;
+            }
+            
+            // Show digit breakdown
+            digitBreakdown.innerHTML = '';
+            for (let i = 0; i < 13; i++) {
+                const digitElement = document.createElement('div');
+                digitElement.className = 'digit';
+                
+                if (i < 12) {
+                    digitElement.classList.add('digit-normal');
+                    digitElement.textContent = id.charAt(i);
+                    digitElement.title = `หลักที่ ${i+1}: ${id.charAt(i)} × ${13-i} = ${parseInt(id.charAt(i)) * (13-i)}`;
+                } else {
+                    if (isValid) {
+                        digitElement.classList.add('digit-calculated');
+                    } else {
+                        digitElement.classList.add('digit-check');
+                    }
+                    digitElement.textContent = id.charAt(i);
+                    digitElement.title = `หลักที่ 13 (Check Digit): ค่าที่ควรเป็นคือ ${calculatedCheckDigit}`;
+                }
+                
+                digitBreakdown.appendChild(digitElement);
+            }
+            
+            // Show result section
+            resultSection.classList.add('show');
+        }
+        
+        // Function to format ID with hyphens
+        function formatID(id) {
+            return id.replace(/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/, "$1-$2-$3-$4-$5");
+        }
+        
+        // Example IDs for testing
+        function addExampleIDs() {
+            const exampleContainer = document.createElement('div');
+            exampleContainer.style.marginTop = '20px';
+            exampleContainer.innerHTML = `
+                <p style="margin-bottom: 10px; color: #7f8c8d;">ตัวอย่างเลขบัตรประชาชนสำหรับทดสอบ:</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button class="example-btn" data-id="1234567890121">1234567890121 (ถูกต้อง)</button>
+                    <button class="example-btn" data-id="1111111111111">1111111111111 (ไม่ถูกต้อง)</button>
+                    <button class="example-btn" data-id="1234567890128">1234567890128 (ถูกต้อง)</button>
+                </div>
+            `;
+            
+            document.querySelector('.input-section').appendChild(exampleContainer);
+            
+            // Add event listeners to example buttons
+            document.querySelectorAll('.example-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const exampleId = this.getAttribute('data-id');
+                    idInput.value = exampleId;
+                    
+                    // Trigger validation
+                    idInput.classList.remove('invalid-input', 'valid-input');
+                    inputError.style.display = 'none';
+                    
+                    // Check the ID
+                    const isValid = validateThaiID(exampleId);
+                    idInput.classList.toggle('valid-input', isValid);
+                    idInput.classList.toggle('invalid-input', !isValid);
+                    
+                    // Show result
+                    showResult(exampleId, isValid);
+                    
+                    // Draw ID card
+                    drawIDCard(exampleId, true);
+                });
+            });
+            
+            // Style example buttons
+            const style = document.createElement('style');
+            style.textContent = `
+                .example-btn {
+                    background: #f1f8ff;
+                    color: #3498db;
+                    border: 1px solid #3498db;
+                    padding: 8px 15px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                    transition: all 0.3s;
+                }
+                .example-btn:hover {
+                    background: #3498db;
+                    color: white;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Add example IDs after page loads
+        window.addEventListener('load', addExampleIDs);
+    </script>
+</body>
+</html>
